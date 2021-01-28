@@ -38,7 +38,7 @@ other files specified.
 Rename '/home/user/bad file name.pdf' to '/home/user/bad-file-name.pdf'
 and prompt the user to confirm this before renaming.
 
-    sprm -di /home/user/bad\ file\ name.pdf
+    sprm -d -i /home/user/bad\ file\ name.pdf
 
 Rename the file 'bad.file.name.pdf' to 'badfilename.pdf'
 
