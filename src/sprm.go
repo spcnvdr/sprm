@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-const sprmVersion = "sprm 0.0.1"
+const sprmVersion = "sprm 0.0.2"
 
 /** cpfile - Copy file src to dst
  *  @param src string the filename/path of the file to copy
@@ -91,12 +91,21 @@ func yesno(prompt string) bool {
 	}
 }
 
-func sprm(originpath string) error {
+/*
+sprm - Remove all spaces from a filename
+@param opath string the path of the file to rename
+@param replace string replace spaces with this character
+@param strip string if not empty, remove these characters from the filename
+@param backup bool copy the file to path with new name instead of renaming
+@param ask bool prompt user before renaming/copying file
+@returns nil on success, else an error
+*/
+func sprm(opath string, replace string, strip string, backup, ask bool) error {
 	var ext string
 	var filename string
 	var err error
 
-	dir, fn := path.Split(originpath)
+	dir, fn := path.Split(opath)
 
 	// if it has an extension, save the extension and remove it
 	// before modifying filename
@@ -108,57 +117,52 @@ func sprm(originpath string) error {
 	}
 
 	// if strip argument used, strip the given chars from filename
-	if stripG != "" {
-		filename = rmChr(filename, stripG)
+	if strip != "" {
+		filename = rmChr(filename, strip)
 	}
 
 	// replace or remove spaces based on cmd line arguments
-	if dashG {
-		filename = strings.ReplaceAll(filename, " ", "-")
-	} else if underscoreG {
-		filename = strings.ReplaceAll(filename, " ", "_")
-	} else {
-		filename = strings.ReplaceAll(filename, " ", "")
-	}
+
+	filename = strings.ReplaceAll(filename, " ", replace)
 
 	//add extension back and join it with path
 	filename += ext
 	newpath := path.Join(dir, filename)
 
-	if backupG {
+	if backup {
 		// before copy, get confirmation
-		if interactiveG {
-			fmt.Printf("sprm: copy '%s' to '%s'? (y/n): ", originpath, newpath)
+		if ask {
+			fmt.Printf("sprm: copy '%s' to '%s'? (y/n): ", opath, newpath)
 			if !yesno("") {
 				return nil
 			}
 		}
 
-		n, err := cpfile(originpath, newpath)
+		n, err := cpfile(opath, newpath)
 		if err != nil {
 			return err
 		}
 
 		if verboseG {
-			fmt.Printf("copied file: %s -> %s (%d bytes)\n", originpath, newpath, n)
+			fmt.Printf("copied file: %s -> %s (%d bytes)\n", opath, newpath, n)
 		}
 
 	} else {
 		// before rename, get confirmation
-		if interactiveG {
-			fmt.Printf("sprm: rename '%s' to '%s'? (y/n): ", originpath, newpath)
+		if ask {
+			fmt.Printf("sprm: rename '%s' to '%s'? (y/n): ", opath, newpath)
 			if !yesno("") {
 				return nil
 			}
 		}
 
-		err = os.Rename(originpath, newpath)
+		err = os.Rename(opath, newpath)
 		if err != nil {
 			return err
 		}
 
 		if verboseG {
-			fmt.Printf("renamed file: %s -> %s\n", originpath, newpath)
+			fmt.Printf("renamed file: %s -> %s\n", opath, newpath)
 		}
 
 	}
@@ -238,6 +242,18 @@ func main() {
 	flag.Usage = printHelp
 
 	flag.Parse()
+	if dashG && underscoreG {
+		fmt.Fprintf(os.Stderr,
+			"Error: cannot replace spaces with dashes and underscores!\n")
+		os.Exit(1)
+	}
+
+	var spaceReplace string
+	if dashG {
+		spaceReplace = "-"
+	} else if underscoreG {
+		spaceReplace = "_"
+	}
 
 	if versionG {
 		fmt.Println(sprmVersion)
@@ -251,7 +267,7 @@ func main() {
 
 	// loop through each file and fix the filename
 	for _, v := range flag.Args() {
-		err := sprm(v)
+		err := sprm(v, spaceReplace, stripG, backupG, interactiveG)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		}
