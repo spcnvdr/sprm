@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-const sprmVersion = "sprm 0.0.2"
+const sprmVersion = "sprm 0.0.3"
 
 /** cpfile - Copy file src to dst
  *  @param src string the filename/path of the file to copy
@@ -67,28 +67,25 @@ func rmChr(s, rm string) string {
 }
 
 /** yesno - Get an affirmitive or negative answer to prompt
- *  @param prompt string the prompt to display to the user
+ *  @param prompt string optional prompt to display to the user
  *  @returns true if user entered an affirmative (y|Y|yes|YES|...)
- *  or a negative
+ *  else a negative
  */
 func yesno(prompt string) bool {
 	if prompt != "" {
 		fmt.Printf("%s: ", prompt)
 	}
 	reader := bufio.NewReader(os.Stdin)
-	for {
-		s, err := reader.ReadString('\n')
-		if err != nil {
-			panic(err)
-		}
-
-		up := strings.ToUpper(s)
-		if up[0] == 'Y' {
-			return true
-		} else {
-			return false
-		}
+	s, err := reader.ReadString('\n')
+	if err != nil {
+		panic(err)
 	}
+
+	up := strings.ToUpper(s)
+	if up[0] == 'Y' {
+		return true
+	}
+	return false
 }
 
 /*
@@ -204,6 +201,7 @@ var (
 	versionG     bool
 	verboseG     bool
 	interactiveG bool
+	questionG    bool
 	stripG       string
 )
 
@@ -236,6 +234,8 @@ func init() {
 	//underscore mode
 	flag.BoolVar(&underscoreG, "underscore", false, "Replace spaces with underscores")
 	flag.BoolVar(&underscoreG, "u", false, "Underscore shortcut")
+
+	flag.BoolVar(&questionG, "?", false, "Underscore shortcut")
 }
 
 func main() {
@@ -246,6 +246,11 @@ func main() {
 		fmt.Fprintf(os.Stderr,
 			"Error: cannot replace spaces with dashes and underscores!\n")
 		os.Exit(1)
+	}
+
+	if questionG {
+		printHelp()
+		os.Exit(0)
 	}
 
 	var spaceReplace string
